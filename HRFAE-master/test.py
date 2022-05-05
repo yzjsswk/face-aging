@@ -39,6 +39,9 @@ parser.add_argument('--checkpoint', type=str, default='', help='checkpoint file 
 parser.add_argument('--img_path', type=str, default='./test/input/', help='test image path')
 parser.add_argument('--out_path', type=str, default='./test/output/', help='test output path')
 parser.add_argument('--target_age', type=int, default=65, help='Age transform target, interger value between 20 and 70')
+parser.add_argument('--min_age', type=int, default=20, help='Age transform minValue, interger value between 20 and 70')
+parser.add_argument('--max_age', type=int, default=70, help='Age transform maxValue, interger value between 20 and 70')
+parser.add_argument('--age_sep', type=int, default=1, help='Age transform interval, interger value between 1 and 10')
 opts = parser.parse_args()
 
 log_dir = os.path.join(opts.log_path, opts.config) + '/'
@@ -102,7 +105,15 @@ with torch.no_grad():
         image_A = preprocess(img_name)
         image_A = image_A.unsqueeze(0).to(device)
 
-        for tg in range(20, 64, 4):
+        min_age = opts.min_age
+        max_age = opts.max_age
+        age_sep = opts.age_sep
+        target_age_list = list(range(min_age, max_age+1, age_sep))
+        if (max_age - min_age) % age_sep != 0:
+            target_age_list.append(max_age)
+        for tg in target_age_list:
             age_modif = torch.tensor(tg).unsqueeze(0).to(device)
             image_A_modif = trainer.test_eval(image_A, age_modif, target_age=tg, hist_trans=True)  
             utils.save_image(clip_img(image_A_modif), opts.out_path + img_name.split('.')[0] + '_age_' + str(tg) + '.jpg')
+        
+            
